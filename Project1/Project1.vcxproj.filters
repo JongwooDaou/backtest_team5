@@ -21,9 +21,21 @@
     <ClCompile Include="oci.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="calculation.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\OciDB1\db.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="oci.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="calculation.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\OciDB1\db.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
