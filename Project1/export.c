@@ -27,14 +27,21 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
     cJSON* portfolio_obj = cJSON_CreateObject();
     cJSON_AddNumberToObject(portfolio_obj, "id", portfolio->id);
     cJSON_AddNumberToObject(portfolio_obj, "stock_count", portfolio->stock_count);
-    cJSON_AddArrayToObject(portfolio_obj, "stocks");
+    
+    // stocks 배열을 생성하고 값 추가
+    cJSON* stocks_array = cJSON_CreateArray();
     for (int i = 0; i < portfolio->stock_count; i++) {
-        cJSON_AddItemToArray(portfolio_obj->child, cJSON_CreateNumber(portfolio->stocks[i]));
+        cJSON_AddItemToArray(stocks_array, cJSON_CreateNumber(portfolio->stocks[i]));
     }
-    cJSON_AddArrayToObject(portfolio_obj, "weights");
+    cJSON_AddItemToObject(portfolio_obj, "stocks", stocks_array);
+
+    // weights 배열을 생성하고 값 추가
+    cJSON* weights_array = cJSON_CreateArray();
     for (int i = 0; i < portfolio->stock_count; i++) {
-        cJSON_AddItemToArray(portfolio_obj->child, cJSON_CreateNumber(portfolio->weights[i]));
+        cJSON_AddItemToArray(weights_array, cJSON_CreateNumber(portfolio->weights[i]));
     }
+    cJSON_AddItemToObject(portfolio_obj, "weights", weights_array);
+
     cJSON_AddNumberToObject(portfolio_obj, "frequency", portfolio->frequency);
     cJSON_AddNumberToObject(portfolio_obj, "amount", portfolio->amount);
 
