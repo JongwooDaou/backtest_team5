@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>포트폴리오 분석</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #f5f5f7;
+            color: #1d1d1f;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        p {
+            font-size: 1.1em;
+            color: #6e6e73;
+        }
+
+        input[type="file"] {
+            margin-top: 20px;
+            padding: 12px 20px;
+            font-size: 1em;
+            border: 2px solid #0071e3;
+            background: #0071e3;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+            input[type="file"]:hover {
+                background: white;
+                color: #0071e3;
+            }
+
+        .report {
+            display: none;
+            padding: 20px;
+        }
+
+        .stats {
+            margin-top: 20px;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .chart-container {
+            margin-top: 30px;
+        }
+
+        canvas {
+            max-width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 파일 업로드 화면 -->
+    <div id="uploadSection" class="container">
+        <h1>포트폴리오 분석</h1>
+        <p>JSON 파일을 업로드하여 포트폴리오 성과를 확인하세요.</p>
+        <input type="file" id="fileInput" accept="application/json">
+    </div>
+
+    <!-- 분석 결과 화면 -->
+    <div id="report" class="container report">
+        <h2>포트폴리오 성과 분석</h2>
+        <p class="stats"><strong>총 투자 금액:</strong> <span id="totalAmount"></span> 원</p>
+        <p class="stats"><strong>총 수익:</strong> <span id="totalReturn"></span> 원</p>
+        <p class="stats"><strong>최대 낙폭:</strong> <span id="maxDrawdown"></span>%</p>
+        <p class="stats"><strong>최고 수익 월:</strong> <span id="bestMonth"></span></p>
+        <p class="stats"><strong>최저 수익 월:</strong> <span id="worstMonth"></span></p>
+
+        <div class="chart-container">
+            <canvas id="profitChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="allocationChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('fileInput').addEventListener('change', function (event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const jsonData = JSON.parse(e.target.result);
+
+                document.getElementById('totalAmount').textContent = jsonData.total_amount.toLocaleString();
+                document.getElementById('totalReturn').textContent = jsonData.total_return.toLocaleString();
+                document.getElementById('maxDrawdown').textContent = jsonData.max_drawdown;
+                document.getElementById('bestMonth').textContent = jsonData.best_month;
+                document.getElementById('worstMonth').textContent = jsonData.worst_month;
+
+                const monthlyData = {
+                    labels: jsonData.monthly_profit.map(m => m.date),
+                    datasets: [{
+                        label: '월별 수익률 (%)',
+                        data: jsonData.monthly_profit.map(m => m.profit_rate),
+                        borderColor: '#0071e3',
+                        backgroundColor: 'rgba(0, 113, 227, 0.1)',
+                        fill: true
+                    }]
+                };
+
+                const allocationData = {
+                    labels: jsonData.portfolio.stocks.map(String),
+                    datasets: [{
+                        label: '포트폴리오 비중',
+                        data: jsonData.portfolio.weights.map(w => w * 100),
+                        backgroundColor: ['#ff3b30', '#34c759', '#007aff']
+                    }]
+                };
+
+                new Chart(document.getElementById('profitChart'), {
+                    type: 'line',
+                    data: monthlyData,
+                    options: { responsive: true }
+                });
+
+                new Chart(document.getElementById('allocationChart'), {
+                    type: 'doughnut',
+                    data: allocationData,
+                    options: { responsive: true }
+                });
+
+                // 업로드 화면 숨기고 보고서 표시
+                document.getElementById('uploadSection').style.display = 'none';
+                document.getElementById('report').style.display = 'block';
+            };
+            reader.readAsText(file);
+        });
+    </script>
+
+</body>
+</html>
