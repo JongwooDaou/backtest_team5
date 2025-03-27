@@ -148,10 +148,172 @@ void show_user_portfolio_menu() {
     printf("종료일: %s\n\n", end_date);
 }
 
-void show_admin_menu() {
-    printf("[관리자 종목 관리 화면]\n");
-    printf("1. 종목 추가\n");
-    printf("2. 종목 수정\n");
-    printf("3. 종목 삭제\n");
-    printf("0. 뒤로가기\n");
+void show_popular_stocks() {
+    printf("\n[ 인기 종목 확인 ]\n\n");
+
+    char stock_names[50][32];
+    int stock_counts[50];
+    int count = get_popular_stocks(stock_names, stock_counts, 50);
+    if (count <= 0) {
+        printf("인기 종목을 불러오지 못했습니다.\n");
+        return;
+    }
+
+    
+    int columns = 2;
+
+    for (int i = 0; i < count; i++) {
+        printf("%2d. %-32s(%d) ", i + 1, stock_names[i], stock_counts[i]);
+
+        if ((i + 1) % columns == 0 || i == count - 1) {
+            printf("\n");
+        }
+    }
+
+    // 상위 3개 출력
+    printf("\n[ 상위 인기 종목 Top 3 ]\n");
+    for (int i = 0; i < 3 && i < count; i++) {
+        int max_idx = i;
+        for (int j = i + 1; j < count; j++) {
+            if (stock_counts[j] > stock_counts[max_idx])
+                max_idx = j;
+        }
+        if (i != max_idx) {
+            int tmp_count = stock_counts[i];
+            stock_counts[i] = stock_counts[max_idx];
+            stock_counts[max_idx] = tmp_count;
+
+            char tmp_name[32];
+            strcpy(tmp_name, stock_names[i]);
+            strcpy(stock_names[i], stock_names[max_idx]);
+            strcpy(stock_names[max_idx], tmp_name);
+        }
+        printf("- %s (%d회)\n", stock_names[i], stock_counts[i]);
+    }
 }
+
+
+void show_admin_menu() {
+    int choice;
+
+    while (1) {
+        printf("\n[관리자 종목 관리 화면]\n");
+        printf("1. 인기 종목 확인\n");
+        printf("2. 종목 추가\n");
+        printf("3. 종목 수정\n");
+        printf("4. 종목 삭제\n");
+        printf("0. 뒤로가기\n");
+        printf("선택: ");
+        scanf("%d", &choice);
+
+        if (choice == 0) break;
+
+        if (choice == 1) {
+            char stock_names[50][32];
+            int stock_counts[50];
+            int count = get_popular_stocks(stock_names, stock_counts, 50);
+
+            if (count <= 0) {
+                printf("[오류] 인기 종목 정보를 불러오지 못했습니다.\n");
+                continue;
+            }
+
+            printf("\n[ 인기 종목 리스트 ]\n\n");
+            int columns = 2;
+
+            for (int i = 0; i < count; i++) {
+                printf("%2d. %-32s(%d) ", i + 1, stock_names[i], stock_counts[i]);
+
+                if ((i + 1) % columns == 0 || i == count - 1) {
+                    printf("\n");
+                }
+            }
+
+            // 상위 3개 출력
+            printf("\n[ 상위 3개 인기 종목 ]\n");
+            for (int i = 0; i < 3 && i < count; i++) {
+                printf("- %s (%d회)\n", stock_names[i], stock_counts[i]);
+            }
+
+        }
+        else if (choice == 2) {
+            char name[32];
+            printf("\n[종목 추가] 새 종목 이름 입력 (공백 포함 가능): ");
+            getchar();  
+            fgets(name, sizeof(name), stdin);
+
+            size_t len = strlen(name);
+            if (len > 0 && name[len - 1] == '\n') {
+                name[len - 1] = '\0';
+            }
+
+            if (strlen(name) == 0) {
+                printf("[실패] 종목 이름은 비워둘 수 없습니다.\n");
+            }
+            else if (insert_stock(name)) {
+                printf("[완료] 종목 '%s' 추가 성공.\n", name);
+            }
+            else {
+                printf("[실패] 종목 추가 중 오류가 발생했습니다.\n");
+            }
+
+        }
+        else if (choice == 3) {
+            int id;
+            char new_name[32];
+            printf("\n[종목 수정] 수정할 종목 ID 입력: ");
+            scanf("%d", &id);
+
+            getchar();  
+            printf("새 종목 이름 입력 (공백 포함 가능): ");
+            fgets(new_name, sizeof(new_name), stdin);
+
+            size_t len = strlen(new_name);
+            if (len > 0 && new_name[len - 1] == '\n') {
+                new_name[len - 1] = '\0';
+            }
+
+            if (strlen(new_name) == 0) {
+                printf("[실패] 종목 이름은 비워둘 수 없습니다.\n");
+            }
+            else if (update_stock(id, new_name)) {
+                printf("[완료] ID %d의 종목이 '%s'(으)로 수정되었습니다.\n", id, new_name);
+            }
+            else {
+                printf("[실패] 종목 수정 중 오류가 발생했습니다.\n");
+            }
+        }
+        else if (choice == 4) {
+            char stock_names[50][32];
+            int stock_count = get_all_stocks(stock_names, 50);
+
+            if (stock_count <= 0) {
+                printf("[오류] 종목 정보를 불러오지 못했습니다.\n");
+                continue;
+            }
+
+            printf("\n[ 종목 리스트 ]\n");
+            for (int i = 0; i < stock_count; i++) {
+                printf("%2d. %-32s\n", i + 1, stock_names[i]);
+            }
+
+            int id;
+            printf("\n삭제할 종목 번호: ");
+            scanf("%d", &id);
+            if (id < 1 || id > stock_count) {
+                printf("잘못된 번호입니다.\n");
+                continue;
+            }
+
+            if (delete_stock(id))
+                printf("[완료] 종목 삭제 성공.\n");
+            else
+                printf("[실패] 삭제 중 오류가 발생했습니다.\n");
+
+        }
+        else {
+            printf("잘못된 입력입니다. 다시 시도해주세요.\n");
+        }
+    }
+}
+

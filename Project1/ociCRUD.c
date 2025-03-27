@@ -127,3 +127,126 @@ int get_all_stocks(char stock_names[][32], int max_count) {
     oci_cleanup();
     return i;
 }
+int get_popular_stocks(char stock_names[][32], int stock_counts[], int max_count) {
+    if (!oci_init()) return 0;
+
+    const char* sql =
+        "SELECT S.STOCK_NAME, COUNT(H.STOCK_ID) AS CNT "
+        "FROM STOCKS S "
+        "LEFT JOIN HOLDINGS H ON S.STOCK_ID = H.STOCK_ID "
+        "WHERE S.STOCK_ID BETWEEN 1 AND 22 "
+        "GROUP BY S.STOCK_ID, S.STOCK_NAME "
+        "ORDER BY S.STOCK_ID";
+
+
+    OCIStmt* stmthp;
+    OCIDefine* defn1 = NULL, * defn2 = NULL;
+    OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL);
+    OCIStmtPrepare(stmthp, errhp, (text*)sql, strlen(sql), OCI_NTV_SYNTAX, OCI_DEFAULT);
+
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        oci_cleanup();
+        return 0;
+    }
+
+    char name[32];
+    int count, i = 0;
+    OCIDefineByPos(stmthp, &defn1, errhp, 1, name, sizeof(name), SQLT_CHR, NULL, NULL, NULL, OCI_DEFAULT);
+    OCIDefineByPos(stmthp, &defn2, errhp, 2, &count, sizeof(count), SQLT_INT, NULL, NULL, NULL, OCI_DEFAULT);
+
+    while ((status = OCIStmtFetch2(stmthp, errhp, 1, OCI_FETCH_NEXT, 0, OCI_DEFAULT)) != OCI_NO_DATA && i < max_count) {
+        if (status != OCI_SUCCESS && status != OCI_SUCCESS_WITH_INFO) {
+            print_oci_error(errhp, status);
+            break;
+        }
+        strncpy(stock_names[i], name, 32);
+        stock_names[i][31] = '\0';
+        stock_counts[i] = count;
+        i++;
+    }
+
+    OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+    oci_cleanup();
+    return i;
+}
+
+int insert_stock(const char* stock_name) {
+    if (!oci_init()) return 0;
+
+    const char* sql = "INSERT INTO STOCKS (STOCK_ID, STOCK_NAME) VALUES ((SELECT NVL(MAX(STOCK_ID), 0) + 1 FROM STOCKS), :1)";
+    OCIStmt* stmthp;
+    OCIBind* bnd1 = NULL;
+
+    OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL);
+    OCIStmtPrepare(stmthp, errhp, (text*)sql, strlen(sql), OCI_NTV_SYNTAX, OCI_DEFAULT);
+    OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)stock_name, strlen(stock_name) + 1, SQLT_STR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT);
+
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 1, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        oci_cleanup();
+        return 0;
+    }
+
+    OCITransCommit(svchp, errhp, OCI_DEFAULT);
+    OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+    oci_cleanup();
+    return 1;
+}
+
+int update_stock(int stock_id, const char* new_name) {
+    if (!oci_init()) return 0;
+
+    const char* sql = "UPDATE STOCKS SET STOCK_NAME = :1 WHERE STOCK_ID = :2";
+    OCIStmt* stmthp;
+    OCIBind* bnd1 = NULL, * bnd2 = NULL;
+
+    OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL);
+    OCIStmtPrepare(stmthp, errhp, (text*)sql, strlen(sql), OCI_NTV_SYNTAX, OCI_DEFAULT);
+
+    OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)new_name, strlen(new_name) + 1, SQLT_STR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT);
+    OCIBindByPos(stmthp, &bnd2, errhp, 2, &stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT);
+
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 1, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        oci_cleanup();
+        return 0;
+    }
+
+    OCITransCommit(svchp, errhp, OCI_DEFAULT);
+    OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+    oci_cleanup();
+    return 1;
+}
+
+int delete_stock(int stock_id) {
+    if (!oci_init()) return 0;
+
+    const char* sql = "DELETE FROM STOCKS WHERE STOCK_ID = :1";
+    OCIStmt* stmthp;
+    OCIBind* bnd1 = NULL;
+
+    OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL);
+    OCIStmtPrepare(stmthp, errhp, (text*)sql, strlen(sql), OCI_NTV_SYNTAX, OCI_DEFAULT);
+    OCIBindByPos(stmthp, &bnd1, errhp, 1, &stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT);
+
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 1, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        oci_cleanup();
+        return 0;
+    }
+
+    OCITransCommit(svchp, errhp, OCI_DEFAULT);
+    OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+    oci_cleanup();
+    return 1;
+}
+
