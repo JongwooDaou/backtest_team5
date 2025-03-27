@@ -3,6 +3,7 @@
 #define EXPORT_H
 
 #include <time.h>
+#include "calculation.h"
 
 // 월별 수익률을 받기 위한 구조체
 typedef struct {
@@ -25,6 +26,6 @@ typedef struct {
 int calculate_months(struct tm start_date, struct tm end_date);
 
 // JSON 변환 및 저장 함수
-void export_json(ResultData*, struct tm start_date, struct tm end_date);
+void export_json(ResultData*, struct tm start_date, struct tm end_date, Portfolio* portfolio);
 
 #endif
