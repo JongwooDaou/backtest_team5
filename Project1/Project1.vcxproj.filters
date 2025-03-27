@@ -21,9 +21,24 @@
     <ClCompile Include="oci.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="mainUi.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="testJong.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="ociCRUD.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="oci.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="mainUi.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="ociCRUD.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
