@@ -3,6 +3,7 @@
 #include <time.h>
 #include "cJSON.h"
 #include "export.h"
+#include "calculation.h"
 
 // tm 구조체를 "YYYY-MM" 문자열로 변환하는 함수
 void format_month(char* buffer, size_t size, struct tm date) {
@@ -15,12 +16,37 @@ int calculate_months(struct tm start_date, struct tm end_date) {
 }
 
 // JSON으로 변환 및 파일 저장 함수
-void export_json(ResultData* data, struct tm start_date, struct tm end_date) {
+void export_json(ResultData* data, struct tm start_date, struct tm end_date, Portfolio* portfolio) {
     // 개월 수 계산
     int months = calculate_months(start_date, end_date);
 
     // 최상위 JSON 객체 생성
     cJSON* root = cJSON_CreateObject();
+
+    // 포트폴리오 정보 추가
+    cJSON* portfolio_obj = cJSON_CreateObject();
+    cJSON_AddNumberToObject(portfolio_obj, "id", portfolio->id);
+    cJSON_AddNumberToObject(portfolio_obj, "stock_count", portfolio->stock_count);
+    cJSON_AddArrayToObject(portfolio_obj, "stocks");
+    for (int i = 0; i < portfolio->stock_count; i++) {
+        cJSON_AddItemToArray(portfolio_obj->child, cJSON_CreateNumber(portfolio->stocks[i]));
+    }
+    cJSON_AddArrayToObject(portfolio_obj, "weights");
+    for (int i = 0; i < portfolio->stock_count; i++) {
+        cJSON_AddItemToArray(portfolio_obj->child, cJSON_CreateNumber(portfolio->weights[i]));
+    }
+    cJSON_AddNumberToObject(portfolio_obj, "frequency", portfolio->frequency);
+    cJSON_AddNumberToObject(portfolio_obj, "amount", portfolio->amount);
+
+    // start_date와 end_date를 "YYYY-MM"으로 변환하여 추가
+    char start_date_str[8], end_date_str[8];
+    format_month(start_date_str, sizeof(start_date_str), portfolio->start_date);
+    format_month(end_date_str, sizeof(end_date_str), portfolio->end_date);
+    cJSON_AddStringToObject(portfolio_obj, "start_date", start_date_str);
+    cJSON_AddStringToObject(portfolio_obj, "end_date", end_date_str);
+
+    // 포트폴리오 정보를 root에 추가
+    cJSON_AddItemToObject(root, "portfolio", portfolio_obj);
 
     // 기본 데이터 추가
     cJSON_AddNumberToObject(root, "portfolio_id", data->portfolio_id);
@@ -36,11 +62,11 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date) {
     cJSON_AddStringToObject(root, "worst_month", worst_month_str);
 
     // start_date와 end_date를 "YYYY-MM"으로 변환하여 추가
-    char start_date_str[8], end_date_str[8];
-    format_month(start_date_str, sizeof(start_date_str), start_date);
-    format_month(end_date_str, sizeof(end_date_str), end_date);
-    cJSON_AddStringToObject(root, "start_date", start_date_str);
-    cJSON_AddStringToObject(root, "end_date", end_date_str);
+    char portfolio_start_date_str[8], portfolio_end_date_str[8];
+    format_month(portfolio_start_date_str, sizeof(portfolio_start_date_str), start_date);
+    format_month(portfolio_end_date_str, sizeof(portfolio_end_date_str), end_date);
+    cJSON_AddStringToObject(root, "start_date", portfolio_start_date_str);
+    cJSON_AddStringToObject(root, "end_date", portfolio_end_date_str);
 
     // 월별 수익률 추가 (배열)
     cJSON* monthly_profit_array = cJSON_CreateArray();
