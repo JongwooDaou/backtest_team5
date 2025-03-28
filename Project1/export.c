@@ -4,6 +4,61 @@
 #include "cJSON.h"
 #include "export.h"
 #include "calculation.h"
+#include "database.h"
+
+// DB에 접근해서 stock_id의 stock 이름을 반환하는 함수
+char* find_stock_name(int stock_id) {
+    /*
+
+    */
+    OCIEnv* envhp = NULL;
+    OCIError* errhp = NULL;
+    OCISvcCtx* svchp = NULL;
+    OCISession* usrhp = NULL;
+    OCIServer* srvhp = NULL;
+    char* username = "C##CPJT";
+    char* password = "1234";
+    char* dbname = "localhost:1521/xe";
+
+    connect_db(&envhp, &errhp, &svchp, &usrhp, &srvhp, username, password, dbname);
+
+    char* stock_name = select_stock_name_by_id(envhp, svchp, errhp, stock_id);
+
+    disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
+
+    //printf("%s\n", stock_name);
+    
+    return stock_name;
+    /*
+        switch (stock_id) {
+    case 1: return "Samsung Electronics";
+    case 2: return "SK Hynix";
+    case 3: return "LG Energy Solution";
+    case 4: return "Samsung Biologics";
+    case 5: return "Hyundai Motor";
+    case 6: return "Kia";
+    case 7: return "Celltrion";
+    case 8: return "Naver";
+    case 9: return "KB Financial Group";
+    case 10: return "Hanwha Aerospace";
+    case 11: return "Hyundai Mobis";
+    case 12: return "HD Hyundai Heavy Industries";
+    case 13: return "POSCO Holdings";
+    case 14: return "Shinhan Financial Group";
+    case 15: return "Meritz Financial Group";
+    case 16: return "Samsung C and T";
+    case 17: return "Hanwha Ocean";
+    case 18: return "LG Chem";
+    case 19: return "SK Innovation";
+    case 20: return "Kakao";
+    case 21: return "Daou Technology";
+    case 22: return "Kiwoom Securities";
+    case 23: return "Kiwoomhah";
+    default: return "Unknown Company";
+    }
+    */
+
+}
 
 // tm 구조체를 "YYYY-MM" 문자열로 변환하는 함수
 void format_month(char* buffer, size_t size, struct tm date) {
@@ -31,7 +86,8 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
     // stocks 배열을 생성하고 값 추가
     cJSON* stocks_array = cJSON_CreateArray();
     for (int i = 0; i < portfolio->stock_count; i++) {
-        cJSON_AddItemToArray(stocks_array, cJSON_CreateNumber(portfolio->stocks[i]));
+        const char* stock_name = find_stock_name(portfolio->stocks[i]); // 종목명 조회
+        cJSON_AddItemToArray(stocks_array, cJSON_CreateString(stock_name)); // 문자열 추가
     }
     cJSON_AddItemToObject(portfolio_obj, "stocks", stocks_array);
 
@@ -85,6 +141,9 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
         format_month(date_str, sizeof(date_str), data->monthly_profit[i].date);
         cJSON_AddStringToObject(profit_obj, "date", date_str);
         cJSON_AddNumberToObject(profit_obj, "profit_rate", data->monthly_profit[i].profit_rate);
+        cJSON_AddNumberToObject(profit_obj, "proceed", data->monthly_profit[i].proceed);
+        cJSON_AddNumberToObject(profit_obj, "valuation", data->monthly_profit[i].valuation);
+        cJSON_AddNumberToObject(profit_obj, "total_investment", data->monthly_profit[i].total_investment);
         cJSON_AddItemToArray(monthly_profit_array, profit_obj);
     }
     cJSON_AddItemToObject(root, "monthly_profit", monthly_profit_array);
