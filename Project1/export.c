@@ -45,10 +45,12 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
     cJSON_AddNumberToObject(portfolio_obj, "frequency", portfolio->frequency);
     cJSON_AddNumberToObject(portfolio_obj, "amount", portfolio->amount);
 
-    // start_date와 end_date를 "YYYY-MM"으로 변환하여 추가
-    char start_date_str[8], end_date_str[8];
-    format_month(start_date_str, sizeof(start_date_str), portfolio->start_date);
-    format_month(end_date_str, sizeof(end_date_str), portfolio->end_date);
+    // start_date와 end_date를 "YYYY-MM-DD"으로 변환하여 추가
+    char start_date_str[11], end_date_str[11];
+    snprintf(start_date_str, sizeof(start_date_str), "%04d-%02d-%02d",
+        start_date.tm_year + 1900, start_date.tm_mon + 1, start_date.tm_mday);
+    snprintf(end_date_str, sizeof(end_date_str), "%04d-%02d-%02d",
+        end_date.tm_year + 1900, end_date.tm_mon + 1, end_date.tm_mday);
     cJSON_AddStringToObject(portfolio_obj, "start_date", start_date_str);
     cJSON_AddStringToObject(portfolio_obj, "end_date", end_date_str);
 
