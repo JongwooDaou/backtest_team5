@@ -20,8 +20,12 @@ typedef struct {
     struct tm end_date;
 } Portfolio;
 
+typedef struct {
+    int closing_price;
+    struct tm closing_date;
+} StockPrice;
+
 int compare_dates(struct tm* date1, struct tm* date2);
 double calculateReturn(Portfolio* portfolio);
-int validateWeights(Portfolio* p);
 
 #endif
