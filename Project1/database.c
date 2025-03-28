@@ -61,7 +61,6 @@ int count_closing_prices(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int s
         start_date.tm_year + 1900, start_date.tm_mon + 1, start_date.tm_mday);
     snprintf(end_date_str, sizeof(end_date_str), "%04d-%02d-%02d",
         end_date.tm_year + 1900, end_date.tm_mon + 1, end_date.tm_mday);
-    printf("start_date: %s\nend_date-str: %s", start_date_str, end_date_str);
 
     if (OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL) != OCI_SUCCESS) {
         fprintf(stderr, "1.Failed to allocate statement handle.\n");
@@ -123,7 +122,7 @@ void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
 
     char* select_sql =
         "SELECT closing_price, TO_CHAR(closing_date, 'YYYY-MM-DD') FROM stock_price "
-        "WHERE stock_id = :1 AND closing_date BETWEEN TO_DATE(:2, 'YYYY-MM-DD') AND TO_DATE(:3, 'YYYY-MM-DD')";
+        "WHERE stock_id = :1 AND closing_date BETWEEN TO_DATE(:2, 'YYYY-MM-DD') AND TO_DATE(:3, 'YYYY-MM-DD') ORDER BY closing_date";
 
     // 날짜 문자열 변환
     char start_date_str[11];
@@ -203,7 +202,6 @@ double select_weight(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock
     OCIDefine* def1 = NULL;
     OCIBind* bnd1 = NULL, * bnd2 = NULL;
     double weight = -1.0; // 기본값 설정 (조회 실패 시 -1 반환)
-    printf("stock_id = %d\nportfolio_id = %d\n", stock_id, portfolio_id);
 
     char* select_sql =
         "SELECT ratio FROM holdings WHERE stock_id = :1 AND portfolio_id = :2";
