@@ -27,6 +27,12 @@
     <ClCompile Include="database.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="export.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="cJSON.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="oci.h">
@@ -36,6 +42,12 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="database.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="export.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="cJSON.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
