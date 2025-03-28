@@ -131,13 +131,17 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="calculation.c" />
+    <ClCompile Include="cJSON.c" />
     <ClCompile Include="database.c" />
+    <ClCompile Include="export.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="oci.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="calculation.h" />
+    <ClInclude Include="cJSON.h" />
     <ClInclude Include="database.h" />
+    <ClInclude Include="export.h" />
     <ClInclude Include="oci.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

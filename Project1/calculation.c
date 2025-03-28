@@ -131,28 +131,28 @@ double calculateReturn(Portfolio* portfolio) {
 }
 
 
-int main() {
-    Portfolio p = {
-         .id = 999,
-         .stock_count = 3,
-         .stocks = {1, 2, 3},
-         .weights = {0.2, 0.3, 0.5},
-         .frequency = 7,
-         .amount = 1000000
-    };
-
-    // 시작 날짜 (2022-01-01)
-    p.start_date.tm_year = 2023 - 1900;
-    p.start_date.tm_mon = 0;
-    p.start_date.tm_mday = 1;
-
-    // 종료 날짜 (2023-12-31)
-    p.end_date.tm_year = 2023 - 1900;
-    p.end_date.tm_mon = 11;
-    p.end_date.tm_mday = 31;
-
-    double total_return = calculateReturn(&p);
-    printf("총 수익률: %.2lf%%\n", total_return);
-
-    return 0;
-}
+//int main() {
+//    Portfolio p = {
+//         .id = 999,
+//         .stock_count = 3,
+//         .stocks = {1, 2, 3},
+//         .weights = {0.2, 0.3, 0.5},
+//         .frequency = 7,
+//         .amount = 1000000
+//    };
+//
+//    // 시작 날짜 (2022-01-01)
+//    p.start_date.tm_year = 2023 - 1900;
+//    p.start_date.tm_mon = 0;
+//    p.start_date.tm_mday = 1;
+//
+//    // 종료 날짜 (2023-12-31)
+//    p.end_date.tm_year = 2023 - 1900;
+//    p.end_date.tm_mon = 11;
+//    p.end_date.tm_mday = 31;
+//
+//    double total_return = calculateReturn(&p);
+//    printf("총 수익률: %.2lf%%\n", total_return);
+//
+//    return 0;
+//}
