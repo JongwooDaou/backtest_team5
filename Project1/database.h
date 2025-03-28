@@ -13,7 +13,7 @@ int count_closing_prices(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int s
 
 void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     int stock_id, struct tm start_date, struct tm end_date, int max_size,
-    int* closing_prices);
+    StockPrice* closing_prices);
 
 double select_weight(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock_id, int portfolio_id);
 

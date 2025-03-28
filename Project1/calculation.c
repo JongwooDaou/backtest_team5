@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
@@ -49,8 +50,8 @@ double calculateReturn(Portfolio* portfolio) {
     double weight = 0;
 
     // 기간 내 종가 데이터 배열
-    int* closing_prices = (int*)malloc(days * sizeof(int));
-    if (closing_prices == NULL) {
+    StockPrice* stock_prices = (int*)malloc(days * sizeof(StockPrice));
+    if (stock_prices == NULL) {
         fprintf(stderr, "Memory allocation failed: closing_prices\n");
         return -1.0;
     }
@@ -59,7 +60,7 @@ double calculateReturn(Portfolio* portfolio) {
     int* end_date_prices = (int*)malloc(portfolio->stock_count * sizeof(int));
     if (end_date_prices == NULL) {
         fprintf(stderr, "Memory allocation failed: end_date_prices\n");
-        free(closing_prices);
+        free(stock_prices);
         return -1.0;
     }
 
@@ -68,7 +69,7 @@ double calculateReturn(Portfolio* portfolio) {
     double** amounts = (double**)malloc(portfolio->stock_count * sizeof(double*));
     if (amounts == NULL) {
         fprintf(stderr, "Memory allocation failed: amounts\n");
-        free(closing_prices);
+        free(stock_prices);
         free(end_date_prices);
         return -1.0;
     }
@@ -78,7 +79,7 @@ double calculateReturn(Portfolio* portfolio) {
             fprintf(stderr, "Memory allocation failed: amount[%d]\n", i);
             for (int j = 0; j < i; j++) free(amounts[j]);
             free(amounts);
-            free(closing_prices);
+            free(stock_prices);
             free(end_date_prices);
             return -1.0;
         }
@@ -86,24 +87,27 @@ double calculateReturn(Portfolio* portfolio) {
 
 
     for (int i = 0; i < portfolio->stock_count; i++) {
-        // 기간 내 종가 조회
-        select_closing_price(envhp, svchp, errhp, portfolio->stocks[i], portfolio->start_date, portfolio->end_date, days, closing_prices);
-        end_date_prices[i] = closing_prices[days - 1];
+        select_closing_price(envhp, svchp, errhp, portfolio->stocks[i], portfolio->start_date, portfolio->end_date, days, stock_prices);
+
+        // 안전한 데이터 접근을 위해 조건 추가
+        if (days <= 0) {
+            fprintf(stderr, "Error: No closing price data available for stock %d.\n", portfolio->stocks[i]);
+            free(stock_prices);
+            free(end_date_prices);
+            return -1.0;
+        }
+
+        end_date_prices[i] = stock_prices[days - 1].closing_price;  // days가 0 이상인지 확인 후 접근
         weight = select_weight(envhp, svchp, errhp, portfolio->stocks[i], portfolio->id);
         double weighted_amount = (portfolio->amount) * weight;
 
         int k = 0;
-        for (int j = 0; j < days; j += portfolio->frequency) {
-            printf("weighted_amount: %.2lf\n", weighted_amount);
-            printf("%d번 종목의 %d번째 종가: %d\n", i+1, j+1, closing_prices[j]);
-            double temp = weighted_amount / closing_prices[j];
-            printf("구매량: %.2lf\n", temp);
-            amounts[i][k] = temp;
-            printf("%d의 %d번째 amount 값: %.2lf\n", i + 1, k + 1, amounts[i][k]);
+        for (int j = 0; j < days && k < max_size; j += portfolio->frequency) {  // k가 max_size를 초과하지 않도록 조건 추가
+            amounts[i][k] = weighted_amount / stock_prices[j].closing_price;
             k++;
         }
     }
-    free(closing_prices);
+    free(stock_prices);
 
     disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
 
@@ -131,28 +135,28 @@ double calculateReturn(Portfolio* portfolio) {
 }
 
 
-//int main() {
-//    Portfolio p = {
-//         .id = 999,
-//         .stock_count = 3,
-//         .stocks = {1, 2, 3},
-//         .weights = {0.2, 0.3, 0.5},
-//         .frequency = 7,
-//         .amount = 1000000
-//    };
-//
-//    // 시작 날짜 (2022-01-01)
-//    p.start_date.tm_year = 2023 - 1900;
-//    p.start_date.tm_mon = 0;
-//    p.start_date.tm_mday = 1;
-//
-//    // 종료 날짜 (2023-12-31)
-//    p.end_date.tm_year = 2023 - 1900;
-//    p.end_date.tm_mon = 11;
-//    p.end_date.tm_mday = 31;
-//
-//    double total_return = calculateReturn(&p);
-//    printf("총 수익률: %.2lf%%\n", total_return);
-//
-//    return 0;
-//}
+int main() {
+    Portfolio p = {
+         .id = 999,
+         .stock_count = 3,
+         .stocks = {1, 2, 3},
+         .weights = {0.2, 0.3, 0.5},
+         .frequency = 7,
+         .amount = 1000000
+    };
+
+    // 시작 날짜 (2022-01-01)
+    p.start_date.tm_year = 2021 - 1900;
+    p.start_date.tm_mon = 0;
+    p.start_date.tm_mday = 1;
+
+    // 종료 날짜 (2023-12-31)
+    p.end_date.tm_year = 2023 - 1900;
+    p.end_date.tm_mon = 11;
+    p.end_date.tm_mday = 31;
+
+    double total_return = calculateReturn(&p);
+    printf("총 수익률: %.2lf%%\n", total_return);
+
+    return 0;
+}

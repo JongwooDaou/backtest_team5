@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "database.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -112,13 +113,17 @@ int count_closing_prices(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int s
 
 void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     int stock_id, struct tm start_date, struct tm end_date, int max_size,
-    int* closing_prices) {
+    StockPrice* closing_prices) {
+
     OCIStmt* stmthp = NULL;
-    OCIDefine* def1 = NULL;
+    OCIDefine* def1 = NULL, * def2 = NULL;
     OCIBind* bnd1 = NULL, * bnd2 = NULL, * bnd3 = NULL;
     int closing_price;
+    char closing_date_str[11];  // YYYY-MM-DD 형식 (문자열)
+
     char* select_sql =
-        "SELECT closing_price FROM stock_price WHERE stock_id = :1 AND closing_date BETWEEN TO_DATE(:2, 'YYYY-MM-DD') AND TO_DATE(:3, 'YYYY-MM-DD')";
+        "SELECT closing_price, TO_CHAR(closing_date, 'YYYY-MM-DD') FROM stock_price "
+        "WHERE stock_id = :1 AND closing_date BETWEEN TO_DATE(:2, 'YYYY-MM-DD') AND TO_DATE(:3, 'YYYY-MM-DD')";
 
     // 날짜 문자열 변환
     char start_date_str[11];
@@ -130,13 +135,13 @@ void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
 
     // 1. Statement 핸들 할당
     if (OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL) != OCI_SUCCESS) {
-        fprintf(stderr, "1.Failed to allocate statement handle.\n");
+        fprintf(stderr, "1. Failed to allocate statement handle.\n");
         return;
     }
 
     // 2. SQL 문 준비
     if (OCIStmtPrepare(stmthp, errhp, (text*)select_sql, (ub4)strlen(select_sql), OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "2.Failed to prepare SQL statement.\n");
+        fprintf(stderr, "2. Failed to prepare SQL statement.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
@@ -145,7 +150,7 @@ void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     if (OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)&stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
         OCIBindByPos(stmthp, &bnd2, errhp, 2, (void*)start_date_str, strlen(start_date_str) + 1, SQLT_CHR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
         OCIBindByPos(stmthp, &bnd3, errhp, 3, (void*)end_date_str, strlen(end_date_str) + 1, SQLT_CHR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "3.Failed to bind parameters.\n");
+        fprintf(stderr, "3. Failed to bind parameters.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
@@ -154,42 +159,42 @@ void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     sword status = OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
     if (status != OCI_SUCCESS) {
         print_oci_error(errhp, status);
-        //fprintf(stderr, "4.Failed to execute SQL statement.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
 
     // 5. 결과 정의
-    if (OCIDefineByPos(stmthp, &def1, errhp, 1, &closing_price, sizeof(closing_price), SQLT_INT, NULL, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "5.Failed to define output.\n");
+    if (OCIDefineByPos(stmthp, &def1, errhp, 1, &closing_price, sizeof(closing_price), SQLT_INT, NULL, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
+        OCIDefineByPos(stmthp, &def2, errhp, 2, closing_date_str, sizeof(closing_date_str), SQLT_STR, NULL, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
+        fprintf(stderr, "5. Failed to define output.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
 
     // 6. 결과 가져와 배열에 저장
     int i = 0;
-    if (max_size > 0) {
-        while (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) == OCI_SUCCESS) {
-            if (i < max_size) {
-                closing_prices[i] = closing_price;
-                i++;
-            }
-            else {
-                fprintf(stderr, "Warning: Result set exceeds buffer size (%d). Truncating results.\n", max_size);
-                break;
-            }
+    while (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) == OCI_SUCCESS) {
+        if (i < max_size) {
+            closing_prices[i].closing_price = closing_price;
+
+            // 날짜 변환 (YYYY-MM-DD → struct tm)
+            sscanf(closing_date_str, "%4d-%2d-%2d",
+                &closing_prices[i].closing_date.tm_year,
+                &closing_prices[i].closing_date.tm_mon,
+                &closing_prices[i].closing_date.tm_mday);
+            closing_prices[i].closing_date.tm_year -= 1900;
+            closing_prices[i].closing_date.tm_mon -= 1;
+
+            i++;
         }
-    }
-    else {
-        fprintf(stderr, "Warning: max_size is 0, no data will be fetched.\n");
+        else {
+            fprintf(stderr, "Warning: Result set exceeds buffer size (%d). Truncating results.\n", max_size);
+            break;
+        }
     }
 
     // 7. 정리
     OCIHandleFree(stmthp, OCI_HTYPE_STMT);
-    OCIHandleFree(bnd1, OCI_HTYPE_BIND);
-    OCIHandleFree(bnd2, OCI_HTYPE_BIND);
-    OCIHandleFree(bnd3, OCI_HTYPE_BIND);
-    OCIHandleFree(def1, OCI_HTYPE_DEFINE);
 }
 
 
