@@ -4,6 +4,12 @@
 #include <oci.h>
 #include <time.h>
 
+void print_oci_error(OCIError* errhp, sword status) {
+    text errbuf[512]; sb4 errcode = 0;
+    OCIErrorGet(errhp, 1, NULL, &errcode, errbuf, sizeof(errbuf), OCI_HTYPE_ERROR);
+    printf("[OCI ERROR %d] %s\n", errcode, errbuf);
+}
+
 // 에러 확인 함수 추가
 void check_error(OCIError* errhp) {
     char errbuf[512];
@@ -41,9 +47,72 @@ void disconnect_db(OCIEnv* envhp, OCIError* errhp, OCISvcCtx* svchp, OCISession*
     OCIHandleFree(envhp, OCI_HTYPE_ENV);
 }
 
+int count_closing_prices(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock_id, struct tm start_date, struct tm end_date) {
+    OCIStmt* stmthp = NULL;
+    OCIDefine* def1 = NULL;
+    OCIBind* bnd1 = NULL, * bnd2 = NULL, * bnd3 = NULL;
+    int count = 0;
+    char* select_sql =
+        "SELECT count(closing_price) FROM stock_price WHERE stock_id = :1 AND closing_date BETWEEN TO_DATE(:2, 'YYYY-MM-DD') AND TO_DATE(:3, 'YYYY-MM-DD')";
+
+    char start_date_str[11], end_date_str[11];
+    snprintf(start_date_str, sizeof(start_date_str), "%04d-%02d-%02d",
+        start_date.tm_year + 1900, start_date.tm_mon + 1, start_date.tm_mday);
+    snprintf(end_date_str, sizeof(end_date_str), "%04d-%02d-%02d",
+        end_date.tm_year + 1900, end_date.tm_mon + 1, end_date.tm_mday);
+    printf("start_date: %s\nend_date-str: %s", start_date_str, end_date_str);
+
+    if (OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL) != OCI_SUCCESS) {
+        fprintf(stderr, "1.Failed to allocate statement handle.\n");
+        return count;
+    }
+
+    if (OCIStmtPrepare(stmthp, errhp, (text*)select_sql, (ub4)strlen(select_sql), OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
+        fprintf(stderr, "2.Failed to prepare SQL statement.\n");
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        return count;
+    }
+
+    // 바인딩
+    if (OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)&stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
+        OCIBindByPos(stmthp, &bnd2, errhp, 2, (void*)start_date_str, strlen(start_date_str) + 1, SQLT_CHR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
+        OCIBindByPos(stmthp, &bnd3, errhp, 3, (void*)end_date_str, strlen(end_date_str) + 1, SQLT_CHR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
+        fprintf(stderr, "3.Failed to bind parameters.\n");
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        return count;
+    }
+
+    // Define (SQL 실행 전)
+    if (OCIDefineByPos(stmthp, &def1, errhp, 1, &count, sizeof(count), SQLT_INT, NULL, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
+        fprintf(stderr, "4.Failed to define output.\n");
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        return count;
+    }
+
+    // SQL 실행
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        return count;
+    }
+
+    // 결과 가져오기
+    if (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) != OCI_SUCCESS) {
+        fprintf(stderr, "6.No data found or fetch failed.\n");
+        count = 0;
+    }
+
+    // 리소스 해제
+    OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+
+    return count;
+}
+
+
 void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     int stock_id, struct tm start_date, struct tm end_date, int max_size,
-    int* closing_prices, int* num_results) {
+    int* closing_prices) {
     OCIStmt* stmthp = NULL;
     OCIDefine* def1 = NULL;
     OCIBind* bnd1 = NULL, * bnd2 = NULL, * bnd3 = NULL;
@@ -59,17 +128,15 @@ void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     snprintf(end_date_str, sizeof(end_date_str), "%04d-%02d-%02d",
         end_date.tm_year + 1900, end_date.tm_mon + 1, end_date.tm_mday);
 
-    *num_results = 0;  // 저장된 데이터 개수 초기화
-
     // 1. Statement 핸들 할당
     if (OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to allocate statement handle.\n");
+        fprintf(stderr, "1.Failed to allocate statement handle.\n");
         return;
     }
 
     // 2. SQL 문 준비
     if (OCIStmtPrepare(stmthp, errhp, (text*)select_sql, (ub4)strlen(select_sql), OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to prepare SQL statement.\n");
+        fprintf(stderr, "2.Failed to prepare SQL statement.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
@@ -78,59 +145,75 @@ void select_closing_price(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp,
     if (OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)&stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
         OCIBindByPos(stmthp, &bnd2, errhp, 2, (void*)start_date_str, strlen(start_date_str) + 1, SQLT_CHR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
         OCIBindByPos(stmthp, &bnd3, errhp, 3, (void*)end_date_str, strlen(end_date_str) + 1, SQLT_CHR, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to bind parameters.\n");
+        fprintf(stderr, "3.Failed to bind parameters.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
 
     // 4. SQL 실행
-    if (OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to execute SQL statement.\n");
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        //fprintf(stderr, "4.Failed to execute SQL statement.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
 
     // 5. 결과 정의
     if (OCIDefineByPos(stmthp, &def1, errhp, 1, &closing_price, sizeof(closing_price), SQLT_INT, NULL, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to define output.\n");
+        fprintf(stderr, "5.Failed to define output.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return;
     }
 
     // 6. 결과 가져와 배열에 저장
-    while (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) == OCI_SUCCESS) {
-        if (*num_results < max_size) {
-            closing_prices[*num_results] = closing_price;
-            (*num_results)++;
+    int i = 0;
+    if (max_size > 0) {
+        while (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) == OCI_SUCCESS) {
+            if (i < max_size) {
+                closing_prices[i] = closing_price;
+                i++;
+            }
+            else {
+                fprintf(stderr, "Warning: Result set exceeds buffer size (%d). Truncating results.\n", max_size);
+                break;
+            }
         }
-        else {
-            fprintf(stderr, "Warning: Result set exceeds buffer size (%d). Truncating results.\n", max_size);
-            break;
-        }
+    }
+    else {
+        fprintf(stderr, "Warning: max_size is 0, no data will be fetched.\n");
     }
 
     // 7. 정리
     OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+    OCIHandleFree(bnd1, OCI_HTYPE_BIND);
+    OCIHandleFree(bnd2, OCI_HTYPE_BIND);
+    OCIHandleFree(bnd3, OCI_HTYPE_BIND);
+    OCIHandleFree(def1, OCI_HTYPE_DEFINE);
 }
+
 
 double select_weight(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock_id, int portfolio_id) {
     OCIStmt* stmthp = NULL;
     OCIDefine* def1 = NULL;
     OCIBind* bnd1 = NULL, * bnd2 = NULL;
     double weight = -1.0; // 기본값 설정 (조회 실패 시 -1 반환)
+    printf("stock_id = %d\nportfolio_id = %d\n", stock_id, portfolio_id);
 
     char* select_sql =
         "SELECT ratio FROM holdings WHERE stock_id = :1 AND portfolio_id = :2";
 
     // 1. Statement 핸들 할당
     if (OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to allocate statement handle.\n");
+        OCIErrorGet(errhp, 1, NULL, NULL, NULL, 0, OCI_HTYPE_ERROR);
+        fprintf(stderr, "1.Failed to allocate statement handle.\n");
         return weight;
     }
 
     // 2. SQL 문 준비
     if (OCIStmtPrepare(stmthp, errhp, (text*)select_sql, (ub4)strlen(select_sql), OCI_NTV_SYNTAX, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to prepare SQL statement.\n");
+        OCIErrorGet(errhp, 1, NULL, NULL, NULL, 0, OCI_HTYPE_ERROR);
+        fprintf(stderr, "2.Failed to prepare SQL statement.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return weight;
     }
@@ -138,33 +221,46 @@ double select_weight(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock
     // 3. 바인딩
     if (OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)&stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS ||
         OCIBindByPos(stmthp, &bnd2, errhp, 2, (void*)&portfolio_id, sizeof(portfolio_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to bind parameters.\n");
+        OCIErrorGet(errhp, 1, NULL, NULL, NULL, 0, OCI_HTYPE_ERROR);
+        fprintf(stderr, "3.Failed to bind parameters.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return weight;
     }
 
-    // 4. 결과 정의 (SQLT_FLT 사용)
+    // 4. SQL 실행
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
+    if (status != OCI_SUCCESS) {
+        print_oci_error(errhp, status);
+        //fprintf(stderr, "4.Failed to execute SQL statement.\n");
+        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+        return;
+    }
+
+    // 5. 결과 정의 (SQLT_FLT 사용)
     if (OCIDefineByPos(stmthp, &def1, errhp, 1, &weight, sizeof(weight), SQLT_FLT, NULL, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to define output.\n");
-        OCIHandleFree(stmthp, OCI_HTYPE_STMT);
-        return weight;
-    }
-
-    // 5. SQL 실행
-    if (OCIStmtExecute(svchp, stmthp, errhp, 1, 0, NULL, NULL, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "Failed to execute SQL statement.\n");
+        OCIErrorGet(errhp, 1, NULL, NULL, NULL, 0, OCI_HTYPE_ERROR);
+        fprintf(stderr, "5.Failed to define output.\n");
         OCIHandleFree(stmthp, OCI_HTYPE_STMT);
         return weight;
     }
 
     // 6. 결과 가져오기
     if (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) != OCI_SUCCESS) {
-        fprintf(stderr, "No data found for stock_id: %d, portfolio_id: %d\n", stock_id, portfolio_id);
+        if (OCIStmtFetch(stmthp, errhp, 1, OCI_FETCH_NEXT, OCI_DEFAULT) == OCI_NO_DATA) {
+            fprintf(stderr, "No data found for stock_id: %d, portfolio_id: %d\n", stock_id, portfolio_id);
+        }
+        else {
+            OCIErrorGet(errhp, 1, NULL, NULL, NULL, 0, OCI_HTYPE_ERROR);
+            fprintf(stderr, "Error fetching data for stock_id: %d, portfolio_id: %d\n", stock_id, portfolio_id);
+        }
         weight = -1.0; // 조회 결과가 없으면 -1 반환
     }
 
-    // 7. 정리
+    // 7. 리소스 해제
     OCIHandleFree(stmthp, OCI_HTYPE_STMT);
+    OCIHandleFree(bnd1, OCI_HTYPE_BIND);
+    OCIHandleFree(bnd2, OCI_HTYPE_BIND);
+    OCIHandleFree(def1, OCI_HTYPE_DEFINE);
 
     return weight; // 조회한 weight 값 반환
 }
