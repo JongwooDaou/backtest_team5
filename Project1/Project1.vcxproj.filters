@@ -21,13 +21,16 @@
     <ClCompile Include="oci.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="mainUi.c">
+    <ClCompile Include="calculation.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="testJong.c">
+    <ClCompile Include="database.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="ociCRUD.c">
+    <ClCompile Include="export.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="cJSON.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,10 +38,16 @@
     <ClInclude Include="oci.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="mainUi.h">
+    <ClInclude Include="calculation.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="ociCRUD.h">
+    <ClInclude Include="database.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="export.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="cJSON.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
