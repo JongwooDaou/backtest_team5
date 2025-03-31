@@ -30,9 +30,8 @@ void print_frame(int phase) {
         for (int j = 0; j < LOGO_WIDTH; j++) {
             int mirrored = 2 * center - j;
             if (phase < center && j >= phase && j < LOGO_WIDTH - phase) {
-                // 뒤집힌 상태 출력
                 char ch = logo_lines[i][mirrored];
-                putchar(ch == ' ' ? ' ' : '.');  // 멀어진 것처럼 연하게
+                putchar(ch == ' ' ? ' ' : '.');
             }
             else {
                 putchar(line[j]);
