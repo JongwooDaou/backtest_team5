@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <oci.h>
 #include <time.h>
+#include <string.h>
 
 void print_oci_error(OCIError* errhp, sword status) {
     text errbuf[512]; sb4 errcode = 0;
@@ -266,4 +267,26 @@ double select_weight(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock
     OCIHandleFree(def1, OCI_HTYPE_DEFINE);
 
     return weight; // 조회한 weight 값 반환
+}
+
+char* select_stock_name_by_id(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock_id) {
+    OCIStmt* stmthp = NULL;
+    //OCIBind* bnd1 = NULL;
+    OCIDefine* def1 = NULL;
+
+    char* stock_name = (char*)malloc(256);
+
+    char* select_sql = "SELECT STOCK_NAME FROM STOCKS WHERE STOCK_ID = 1";
+
+    OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL);
+    OCIStmtPrepare(stmthp, errhp, (text*)select_sql, strlen(select_sql), OCI_NTV_SYNTAX,
+        OCI_DEFAULT);
+    //OCIBindByPos(stmthp, &bnd1, errhp, 1, &stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT);
+    OCIStmtExecute(svchp, stmthp, errhp, 0, 0, NULL, NULL, OCI_DEFAULT);
+    OCIDefineByPos(stmthp, &def1, errhp, 1, stock_name, 256, SQLT_INT, NULL, NULL, NULL, OCI_DEFAULT);
+    OCIStmtFetch2(stmthp, errhp, 1, OCI_DEFAULT, 0, OCI_DEFAULT);
+
+    printf("%s\n", stock_name);
+
+    return stock_name;
 }
