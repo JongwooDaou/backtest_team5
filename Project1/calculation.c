@@ -52,6 +52,7 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
     connect_db(&envhp, &errhp, &svchp, &usrhp, &srvhp, username, password, dbname);
 
     int days = count_closing_prices(envhp, svchp, errhp, portfolio->stocks[0], portfolio->start_date, portfolio->end_date);
+    days *= 30;
     int month_diff = calculate_month_difference(portfolio->start_date, portfolio->end_date);
     int stockCount = portfolio->stock_count;
     StockPrice* stock_prices = (StockPrice*)malloc(days * sizeof(StockPrice));

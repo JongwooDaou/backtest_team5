@@ -7,7 +7,7 @@
 #include <math.h>
 #include <time.h>
 
-#define MAX_STOCKS 20
+#define MAX_STOCKS 23
 
 typedef struct {
     int id;
