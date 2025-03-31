@@ -157,7 +157,7 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         // 월말 종가를 마지막 날 종가로 설정
         end_date_prices[i][month_diff - 1] = stock_prices[days - 1].closing_price;
 
-        double weight = select_weight(envhp, svchp, errhp, portfolio->stocks[i], portfolio->id);
+        double weight = portfolio->weights[i];
         double weighted_amount = portfolio->amount * weight;
 
         int prev_month = stock_prices[0].closing_date.tm_mon;

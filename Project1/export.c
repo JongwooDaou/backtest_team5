@@ -133,7 +133,7 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
         format_month(date_str, sizeof(date_str), data->monthly_profit[i].date);
         cJSON_AddStringToObject(profit_obj, "date", date_str);
         cJSON_AddNumberToObject(profit_obj, "profit_rate", data->monthly_profit[i].profit_rate);
-        cJSON_AddNumberToObject(profit_obj, "proceed", data->monthly_profit[i].proceed);
+        //cJSON_AddNumberToObject(profit_obj, "proceed", data->monthly_profit[i].proceed);
         cJSON_AddNumberToObject(profit_obj, "valuation", data->monthly_profit[i].valuation);
         cJSON_AddNumberToObject(profit_obj, "total_investment", data->monthly_profit[i].total_investment);
         cJSON_AddItemToArray(monthly_profit_array, profit_obj);
@@ -157,4 +157,93 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
     // 메모리 해제
     cJSON_free(json_string);
     cJSON_Delete(root);
+}
+
+void add_month(struct tm* date, int months) {
+    struct tm new_date = *date;  // 원본 날짜 복사
+    new_date.tm_mon += months;   // 월 증가
+
+    // mktime을 사용하여 자동으로 날짜 조정
+    mktime(&new_date);
+
+    // 연도와 월만 유지 (일자는 무조건 1일로 설정)
+    date->tm_year = new_date.tm_year;
+    date->tm_mon = new_date.tm_mon;
+    date->tm_mday = 1;  // YYYY-MM 형식 유지 (1일로 고정)
+
+    // 정상적으로 날짜가 설정된 경우
+    printf("New Date: %d-%02d-%02d\n", date->tm_year + 1900, date->tm_mon + 1, date->tm_mday);
+}
+
+
+
+ResultData* create_result_data(const Portfolio* portfolio, const ReturnResult* returns, struct tm start_date, struct tm end_date) {
+    ResultData* result = (ResultData*)malloc(sizeof(ResultData));
+    if (result == NULL) {
+        fprintf(stderr, "Memory allocation failed for ResultData.\n");
+        return NULL;
+    }
+
+    // 개월 수 계산
+    int months = calculate_months(start_date, end_date);
+
+    result->portfolio_id = portfolio->id;
+    result->total_amount = 0;
+    result->total_return = 0;
+    result->max_drawdown = returns->mdd;
+
+    // 월별 수익률 및 평가액을 저장할 배열 동적 할당
+    result->monthly_profit = (MonthlyProfit*)malloc(months * sizeof(MonthlyProfit));
+    if (result->monthly_profit == NULL) {
+        fprintf(stderr, "Memory allocation failed for MonthlyProfit array.\n");
+        free(result);
+        return NULL;
+    }
+
+    // 월별 수익률, 평가액, 누적 평가액을 계산
+
+    int best_month_index = 0, worst_month_index = 0;
+    double best_month_profit = returns->monthly_returns[0], worst_month_profit = returns->monthly_returns[0];
+
+    for (int month = 0; month < months; month++) {
+        result->monthly_profit[month].date = start_date;
+        add_month(&result->monthly_profit[month].date, month);
+
+        // 월별 수익률 설정
+        result->monthly_profit[month].profit_rate = returns->monthly_returns[month];
+
+        // 월말 평가액 계산
+        // 시작월일경우
+        if (month == 0) {
+        double monthly_investment = portfolio->amount * (returns->monthly_returns[month] / 100.0) * returns->monthly_trade_count[month];
+        result->monthly_profit[month].valuation = monthly_investment;
+        }
+        // 시작월이 아닐경우
+        else {
+            double monthly_investment = portfolio->amount * (returns->monthly_returns[month] / 100.0) * (returns->monthly_trade_count[month] - returns->monthly_trade_count[month - 1]);
+            result->monthly_profit[month].valuation = monthly_investment;
+        }
+        
+        // 월말 누적 투자액 계산
+        result->monthly_profit[month].total_investment = portfolio->amount * returns->monthly_trade_count[month] * (returns->cum_monthly_returns[month] / 100.0);
+
+        // 최대/최소 수익 달 계산
+        if (result->monthly_profit[month].profit_rate > best_month_profit) {
+            best_month_profit = result->monthly_profit[month].profit_rate;
+            best_month_index = month;
+        }
+        if (result->monthly_profit[month].profit_rate < worst_month_profit) {
+            worst_month_profit = result->monthly_profit[month].profit_rate;
+            worst_month_index = month;
+        }
+    }
+
+    // 최대 수익 달과 최소 수익 달의 tm 구조체 계산
+    result->best_month = result->monthly_profit[best_month_index].date;
+    result->worst_month = result->monthly_profit[worst_month_index].date;
+
+    // 최종 수익 계산
+    result->total_amount = portfolio->amount * returns->monthly_trade_count[months - 1];
+    result->total_return = result->monthly_profit[months - 1].total_investment;
+    return result;
 }

@@ -17,7 +17,7 @@ extern OCISession* usrhp;
 typedef struct {
     struct tm date; // 수익을 얻은 달을 표현
     double profit_rate; // 수익률
-    double proceed; // 월별 수익금
+    //double proceed; // 월별 수익금
     double valuation; // 월말 평가액
     double total_investment; // 월말 누적 투자액
 } MonthlyProfit;
@@ -44,5 +44,11 @@ int calculate_months(struct tm start_date, struct tm end_date);
 
 // JSON 변환 및 저장 함수
 void export_json(ResultData*, struct tm start_date, struct tm end_date, Portfolio* portfolio);
+
+// 월을 증가시키는 함수
+void add_month(struct tm* date, int months);
+
+// ResultData 생성 함수
+ResultData* create_result_data(const Portfolio* portfolio, const ReturnResult* returns, struct tm start_date, struct tm end_date);
 
 #endif
