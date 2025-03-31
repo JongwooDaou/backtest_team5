@@ -184,34 +184,14 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         }
     }
 
-    printf("월별 구매 횟수: ");
     for (int i = 0; i < month_diff; i++) {
-        printf("%d ", monthly_trade_count[i]);
         if (i == 0) cum_monthly_trade_count[i] = monthly_trade_count[i];
         else cum_monthly_trade_count[i] = cum_monthly_trade_count[i - 1] + monthly_trade_count[i];
 
     }
-    printf("\n");
 
     result.monthly_trade_count = cum_monthly_trade_count;
 
-    // 월별 종목 보유량
-    for (int i = 0; i < stockCount; i++) {
-        printf("%d번 종목 보유량: [ ", i + 1);
-        for (int j = 0; j < month_diff; j++) {
-            printf("%.2lf ", portfolio_amounts[i][j]);
-        }
-        printf("]\n");
-    }
-
-    // 월말 종가
-    for (int i = 0; i < stockCount; i++) {
-        printf("%d번 종목 월말 종가: [ ", i + 1);
-        for (int j = 0; j < month_diff; j++) {
-            printf("%d ", end_date_prices[i][j]);
-        }
-        printf("]\n");
-    }
 
     // 월별 누적 종목 보유량
     for (int i = 0; i < stockCount; i++) {
@@ -221,27 +201,15 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         }
     }
 
-    // 월별 종목 누적 보유량
-    for (int i = 0; i < stockCount; i++) {
-        printf("%d번 종목 누적 보유량: [ ", i + 1);
-        for (int j = 0; j < month_diff; j++) {
-            printf("%.2lf ", cum_portfolio_amounts[i][j]);
-        }
-        printf("]\n");
-    }
-
     disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
 
     // 월별 수익률
-    printf("월별 수익률: [ ");
     for (int j = 0; j < month_diff; j++) {
         for (int i = 0; i < stockCount; i++) {
             monthly_return_rates[j] += (portfolio_amounts[i][j] * end_date_prices[i][j]);
         }
         monthly_return_rates[j] = monthly_return_rates[j] / ((portfolio->amount * monthly_trade_count[j])) * 100;
-        printf("%.1lf%% ", monthly_return_rates[j] - 100);
     }
-    printf("]\n");
 
     result.monthly_returns = monthly_return_rates;
 
@@ -250,7 +218,6 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
     double mdd = 0.0;
 
     // 월별 누적 수익률 및 MDD 계산
-    printf("월별 누적 수익률: [ ");
     for (int j = 0; j < month_diff; j++) {
         for (int i = 0; i < stockCount; i++) {
             cum_monthly_return_rates[j] += cum_portfolio_amounts[i][j] * end_date_prices[i][j];
@@ -265,16 +232,12 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         if (drawdown > mdd) {
             mdd = drawdown;  // 최대 낙폭 갱신
         }
-
-        printf("%.1lf%% ", cum_monthly_return_rates[j] - 100);
     }
-    printf("]\n");
 
     result.cum_monthly_returns = cum_monthly_return_rates;
 
     // MDD 출력
     result.mdd = mdd;
-    printf("Maximum Drawdown (MDD): %.2lf%%\n", mdd * 100);
 
 
     free(stock_prices);
