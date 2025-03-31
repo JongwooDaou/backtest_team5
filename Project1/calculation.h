@@ -33,6 +33,6 @@ typedef struct {
 } ReturnResult;
 
 int compare_dates(struct tm* date1, struct tm* date2);
-void calculateReturn(Portfolio* portfolio);
+ReturnResult calculateReturn(Portfolio* portfolio);
 
 #endif
