@@ -5,32 +5,25 @@
 #include "export.h"
 #include "calculation.h"
 #include "database.h"
+#include "ociCRUD.h"
 
 // DB에 접근해서 stock_id의 stock 이름을 반환하는 함수
 char* find_stock_name(int stock_id) {
-    /*
-
-    */
-    OCIEnv* envhp = NULL;
-    OCIError* errhp = NULL;
-    OCISvcCtx* svchp = NULL;
-    OCISession* usrhp = NULL;
-    OCIServer* srvhp = NULL;
-    char* username = "C##CPJT";
-    char* password = "1234";
-    char* dbname = "localhost:1521/xe";
-
-    connect_db(&envhp, &errhp, &svchp, &usrhp, &srvhp, username, password, dbname);
-
-    char* stock_name = select_stock_name_by_id(envhp, svchp, errhp, stock_id);
-
-    disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
-
-    //printf("%s\n", stock_name);
     
+    char* stock_name = (char*)malloc(256);
+    const char* sql = "SELECT STOCK_NAME FROM STOCKS WHERE STOCK_ID = :1";
+    OCIStmt* stmthp; OCIDefine* defnp = NULL;
+    OCIHandleAlloc(envhp, (void**)&stmthp, OCI_HTYPE_STMT, 0, NULL);
+    OCIStmtPrepare(stmthp, errhp, (text*)sql, strlen(sql), OCI_NTV_SYNTAX, OCI_DEFAULT);
+    OCIBind* bnd1 = NULL;
+    OCIBindByPos(stmthp, &bnd1, errhp, 1, (void*)&stock_id, sizeof(stock_id), SQLT_INT, NULL, NULL, NULL, 0, NULL, OCI_DEFAULT);
+    OCIDefineByPos(stmthp, &defnp, errhp, 1, stock_name, 256, SQLT_STR, NULL, NULL, NULL, OCI_DEFAULT);
+    sword status = OCIStmtExecute(svchp, stmthp, errhp, 1, 0, NULL, NULL, OCI_DEFAULT);
+    OCIHandleFree(stmthp, OCI_HTYPE_STMT);
     return stock_name;
+
     /*
-        switch (stock_id) {
+    switch (stock_id) {
     case 1: return "Samsung Electronics";
     case 2: return "SK Hynix";
     case 3: return "LG Energy Solution";
@@ -57,7 +50,6 @@ char* find_stock_name(int stock_id) {
     default: return "Unknown Company";
     }
     */
-
 }
 
 // tm 구조체를 "YYYY-MM" 문자열로 변환하는 함수
@@ -85,10 +77,12 @@ void export_json(ResultData* data, struct tm start_date, struct tm end_date, Por
     
     // stocks 배열을 생성하고 값 추가
     cJSON* stocks_array = cJSON_CreateArray();
+    oci_init();
     for (int i = 0; i < portfolio->stock_count; i++) {
         const char* stock_name = find_stock_name(portfolio->stocks[i]); // 종목명 조회
         cJSON_AddItemToArray(stocks_array, cJSON_CreateString(stock_name)); // 문자열 추가
     }
+    oci_cleanup();
     cJSON_AddItemToObject(portfolio_obj, "stocks", stocks_array);
 
     // weights 배열을 생성하고 값 추가

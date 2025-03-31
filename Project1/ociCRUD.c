@@ -8,11 +8,11 @@
 #define DB_PASS "1234"
 #define DB_CONN "//192.168.31.101:1521/xe"
 
-static OCIEnv* envhp = NULL;
-static OCIError* errhp = NULL;
-static OCISvcCtx* svchp = NULL;
-static OCIServer* srvhp = NULL;
-static OCISession* usrhp = NULL;
+OCIEnv* envhp = NULL;
+OCIError* errhp = NULL;
+OCISvcCtx* svchp = NULL;
+OCIServer* srvhp = NULL;
+OCISession* usrhp = NULL;
 
 void print_oci_error(OCIError* errhp, sword status) {
     text errbuf[512]; sb4 errcode = 0;

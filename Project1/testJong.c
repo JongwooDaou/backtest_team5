@@ -50,7 +50,7 @@ void animate_spin_like_earth() {
         }
     }
 }
-int main() {
+int main_temp() {
     int running = 1;
     animate_spin_like_earth();
 
