@@ -183,10 +183,10 @@ Portfolio show_user_portfolio_menu() {
     // 입력한 포트폴리오 요약 출력
     printf("\n[입력한 포트폴리오 요약]\n");
     for (int i = 0; i < count; i++) {
-        printf("- 종목 %d: %.2f%%\n", p.stocks[i], p.weights[i]);
+        printf("- 종목 %d: %.0f%%\n", p.stocks[i], p.weights[i]*100);
     }
     printf("매수 주기: %d일마다\n", p.frequency);
-    printf("매수 금액: %.0f\n", p.amount);
+    printf("매수 금액: %d\n", p.amount);
     printf("시작일: %d/%02d\n", p.start_date.tm_year + 1900, p.start_date.tm_mon + 1);
     printf("종료일: %d/%02d\n\n", p.end_date.tm_year + 1900, p.end_date.tm_mon + 1);
 
