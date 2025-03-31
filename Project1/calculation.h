@@ -25,7 +25,14 @@ typedef struct {
     struct tm closing_date;
 } StockPrice;
 
+typedef struct {
+    double mdd;  // 최대 낙폭 (MDD)
+    double total_return;  // 총 투자금액
+    double* monthly_returns;  // 월별 수익률 배열
+    double* cum_monthly_returns;  // 월별 누적 수익률 배열
+} ReturnResult;
+
 int compare_dates(struct tm* date1, struct tm* date2);
-double calculateReturn(Portfolio* portfolio);
+void calculateReturn(Portfolio* portfolio);
 
 #endif
