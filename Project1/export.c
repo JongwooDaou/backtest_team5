@@ -172,7 +172,7 @@ void add_month(struct tm* date, int months) {
     date->tm_mday = 1;  // YYYY-MM 형식 유지 (1일로 고정)
 
     // 정상적으로 날짜가 설정된 경우
-    printf("New Date: %d-%02d-%02d\n", date->tm_year + 1900, date->tm_mon + 1, date->tm_mday);
+    //printf("New Date: %d-%02d-%02d\n", date->tm_year + 1900, date->tm_mon + 1, date->tm_mday);
 }
 
 
@@ -249,11 +249,11 @@ ResultData* create_result_data(const Portfolio* portfolio, const ReturnResult* r
             worst_month_profit = result->monthly_profit[month].profit_rate;
             worst_month_index = month;
         }
-        printf("month: %d\n", month);
-        printf("amount: %d\n", portfolio->amount);
-        printf("monthly_investment: %lf\n", result->monthly_profit[month].valuation);
-        printf("monthly_profit: %lf\n", result->monthly_profit[month].profit_rate);
-        printf("total_investment: %lf\n", result->monthly_profit[month].total_investment);
+        //printf("month: %d\n", month);
+        //printf("amount: %d\n", portfolio->amount);
+        //printf("monthly_investment: %lf\n", result->monthly_profit[month].valuation);
+        //printf("monthly_profit: %lf\n", result->monthly_profit[month].profit_rate);
+        //printf("total_investment: %lf\n", result->monthly_profit[month].total_investment);
     }
 
     // 최대 수익 달과 최소 수익 달의 tm 구조체 계산

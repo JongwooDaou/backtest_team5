@@ -89,11 +89,17 @@ void handle_register() {
 //}
 
 // 날짜 문자열을 tm 구조체로 변환하는 함수
-void parse_date(const char* date_str, struct tm* tm_date) {
+void parse_date1(const char* date_str, struct tm* tm_date) {
     sscanf(date_str, "%4d/%2d", &tm_date->tm_year, &tm_date->tm_mon);
     tm_date->tm_year -= 1900;  // tm_year는 1900을 기준으로 해야 함
     tm_date->tm_mon -= 1;      // 월은 0부터 시작
     tm_date->tm_mday = 1;
+}
+void parse_date2(const char* date_str, struct tm* tm_date) {
+    sscanf(date_str, "%4d/%2d", &tm_date->tm_year, &tm_date->tm_mon);
+    tm_date->tm_year -= 1900;  // tm_year는 1900을 기준으로 해야 함
+    tm_date->tm_mon -= 1;      // 월은 0부터 시작
+    tm_date->tm_mday = 30;
 }
 
 // 포트폴리오 입력 함수
@@ -169,8 +175,8 @@ Portfolio show_user_portfolio_menu() {
     } while (!validate_date_format(end_date));
 
     // 날짜 처리
-    parse_date(start_date, &p.start_date);
-    parse_date(end_date, &p.end_date);
+    parse_date1(start_date, &p.start_date);
+    parse_date2(end_date, &p.end_date);
     
     printf("날짜처리 완?");
 
