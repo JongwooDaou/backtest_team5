@@ -38,6 +38,8 @@ int calculate_month_difference(struct tm start_date, struct tm end_date) {
 
 // 기존의 calculateReturn 함수 수정
 ReturnResult calculateReturn(Portfolio* portfolio) {
+    ReturnResult result = { NAN, NULL, NULL, NULL };
+
     OCIEnv* envhp = NULL;
     OCIError* errhp = NULL;
     OCISvcCtx* svchp = NULL;
@@ -55,7 +57,6 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
     StockPrice* stock_prices = (StockPrice*)malloc(days * sizeof(StockPrice));
     if (stock_prices == NULL) {
         fprintf(stderr, "Memory allocation failed: stock_prices\n");
-        ReturnResult result = { NAN, NAN, NULL, NULL };
         return result;
     }
 
@@ -64,17 +65,15 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
     if (end_date_prices == NULL) {
         fprintf(stderr, "Memory allocation failed: portfolio_amounts\n");
         free(stock_prices);
-        ReturnResult result = { NAN, NAN, NULL, NULL };
         return result;
     }
     for (int i = 0; i < stockCount; i++) {
-        end_date_prices[i] = (int*)calloc(month_diff, sizeof(int));
+        end_date_prices[i] = (int*)calloc(month_diff, sizeof(int)); // 개월 수 크기로 설정
         if (end_date_prices[i] == NULL) {
             fprintf(stderr, "Memory allocation failed: end_date_prices[%d]\n", i);
             for (int j = 0; j < i; j++) free(end_date_prices[j]);
             free(stock_prices);
             free(end_date_prices);
-            ReturnResult result = { NAN, NAN, NULL, NULL };
             return result;
         }
     }
@@ -85,18 +84,16 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         fprintf(stderr, "Memory allocation failed: portfolio_amounts\n");
         free(stock_prices);
         free(end_date_prices);
-        ReturnResult result = { NAN, NAN, NULL, NULL };
         return result;
     }
     for (int i = 0; i < stockCount; i++) {
-        portfolio_amounts[i] = (double*)calloc(month_diff, sizeof(double));
+        portfolio_amounts[i] = (double*)calloc(month_diff, sizeof(double)); // 개월 수 크기로 설정
         if (portfolio_amounts[i] == NULL) {
             fprintf(stderr, "Memory allocation failed: portfolio_amounts[%d]\n", i);
             for (int j = 0; j < i; j++) free(portfolio_amounts[j]);
             free(portfolio_amounts);
             free(stock_prices);
             free(end_date_prices);
-            ReturnResult result = { NAN, NAN, NULL, NULL };
             return result;
         }
     }
@@ -107,11 +104,10 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         fprintf(stderr, "Memory allocation failed: portfolio_amounts\n");
         free(stock_prices);
         free(end_date_prices);
-        ReturnResult result = { NAN, NAN, NULL, NULL };
         return result;
     }
     for (int i = 0; i < stockCount; i++) {
-        cum_portfolio_amounts[i] = (double*)calloc(month_diff, sizeof(double));
+        cum_portfolio_amounts[i] = (double*)calloc(month_diff, sizeof(double)); // 개월 수 크기로 설정
         if (cum_portfolio_amounts[i] == NULL) {
             fprintf(stderr, "Memory allocation failed: portfolio_amounts[%d]\n", i);
             for (int j = 0; j < i; j++) free(cum_portfolio_amounts[j]);
@@ -120,7 +116,6 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
             for (int j = 0; j < i; j++) free(portfolio_amounts[j]);
             free(stock_prices);
             free(end_date_prices);
-            ReturnResult result = { NAN, NAN, NULL, NULL };
             return result;
         }
     }
@@ -131,7 +126,6 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         fprintf(stderr, "Memory allocation failed: portfolio_amounts\n");
         free(stock_prices);
         free(end_date_prices);
-        ReturnResult result = { NAN, NAN, NULL, NULL };
         return result;
     }
 
@@ -141,7 +135,6 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         fprintf(stderr, "Memory allocation failed: portfolio_amounts\n");
         free(stock_prices);
         free(end_date_prices);
-        ReturnResult result = { NAN, NAN, NULL, NULL };
         return result;
     }
 
@@ -158,7 +151,6 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
             free(end_date_prices);
             free(portfolio_amounts);
             disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
-            ReturnResult result = { NAN, NAN, NULL, NULL };
             return result;
         }
 
@@ -186,16 +178,79 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
                     }
                 }
                 end_date_prices[i][k] = stock_prices[j].closing_price;
+
             }
             prev_month = curr_month;
         }
     }
+
+    printf("월별 구매 횟수: ");
+    for (int i = 0; i < month_diff; i++) {
+        printf("%d ", monthly_trade_count[i]);
+        if (i == 0) cum_monthly_trade_count[i] = monthly_trade_count[i];
+        else cum_monthly_trade_count[i] = cum_monthly_trade_count[i - 1] + monthly_trade_count[i];
+
+    }
+    printf("\n");
+
+    result.monthly_trade_count = cum_monthly_trade_count;
+
+    // 월별 종목 보유량
+    for (int i = 0; i < stockCount; i++) {
+        printf("%d번 종목 보유량: [ ", i + 1);
+        for (int j = 0; j < month_diff; j++) {
+            printf("%.2lf ", portfolio_amounts[i][j]);
+        }
+        printf("]\n");
+    }
+
+    // 월말 종가
+    for (int i = 0; i < stockCount; i++) {
+        printf("%d번 종목 월말 종가: [ ", i + 1);
+        for (int j = 0; j < month_diff; j++) {
+            printf("%d ", end_date_prices[i][j]);
+        }
+        printf("]\n");
+    }
+
+    // 월별 누적 종목 보유량
+    for (int i = 0; i < stockCount; i++) {
+        cum_portfolio_amounts[i][0] = portfolio_amounts[i][0];
+        for (int j = 1; j < month_diff; j++) {
+            cum_portfolio_amounts[i][j] = cum_portfolio_amounts[i][j - 1] + portfolio_amounts[i][j];
+        }
+    }
+
+    // 월별 종목 누적 보유량
+    for (int i = 0; i < stockCount; i++) {
+        printf("%d번 종목 누적 보유량: [ ", i + 1);
+        for (int j = 0; j < month_diff; j++) {
+            printf("%.2lf ", cum_portfolio_amounts[i][j]);
+        }
+        printf("]\n");
+    }
+
+    disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
+
+    // 월별 수익률
+    printf("월별 수익률: [ ");
+    for (int j = 0; j < month_diff; j++) {
+        for (int i = 0; i < stockCount; i++) {
+            monthly_return_rates[j] += (portfolio_amounts[i][j] * end_date_prices[i][j]);
+        }
+        monthly_return_rates[j] = monthly_return_rates[j] / ((portfolio->amount * monthly_trade_count[j])) * 100;
+        printf("%.1lf%% ", monthly_return_rates[j] - 100);
+    }
+    printf("]\n");
+
+    result.monthly_returns = monthly_return_rates;
 
     // MDD 계산을 위한 변수 추가
     double max_cum_return_rate = -10000;  // 초기값은 매우 작은 값
     double mdd = 0.0;
 
     // 월별 누적 수익률 및 MDD 계산
+    printf("월별 누적 수익률: [ ");
     for (int j = 0; j < month_diff; j++) {
         for (int i = 0; i < stockCount; i++) {
             cum_monthly_return_rates[j] += cum_portfolio_amounts[i][j] * end_date_prices[i][j];
@@ -210,15 +265,18 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
         if (drawdown > mdd) {
             mdd = drawdown;  // 최대 낙폭 갱신
         }
+
+        printf("%.1lf%% ", cum_monthly_return_rates[j] - 100);
     }
+    printf("]\n");
 
-    // 총 투자금액 계산
-    double total_return = cum_monthly_return_rates[month_diff - 1];
+    result.cum_monthly_returns = cum_monthly_return_rates;
 
-    ReturnResult result = { mdd, total_return, monthly_return_rates, cum_monthly_return_rates };
-    disconnect_db(envhp, errhp, svchp, usrhp, srvhp);
+    // MDD 출력
+    result.mdd = mdd;
+    printf("Maximum Drawdown (MDD): %.2lf%%\n", mdd * 100);
 
-    // 메모리 해제
+
     free(stock_prices);
     free(end_date_prices);
     for (int i = 0; i < portfolio->stock_count; i++) {
@@ -226,6 +284,8 @@ ReturnResult calculateReturn(Portfolio* portfolio) {
     }
     free(portfolio_amounts);
     free(monthly_trade_count);
+
+    double total_return_rate = cum_monthly_return_rates[month_diff - 1];
 
     return result;
 }

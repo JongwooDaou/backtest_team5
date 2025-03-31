@@ -27,7 +27,7 @@ typedef struct {
 
 typedef struct {
     double mdd;  // 최대 낙폭 (MDD)
-    double total_return;  // 총 투자금액
+    int* monthly_trade_count;  // 월별 구매량
     double* monthly_returns;  // 월별 수익률 배열
     double* cum_monthly_returns;  // 월별 누적 수익률 배열
 } ReturnResult;
