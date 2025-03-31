@@ -5,6 +5,13 @@
 #include <time.h>
 #include <oci.h>
 #include "calculation.h"
+#include "ociCRUD.h"
+
+extern OCIEnv* envhp;
+extern OCIError* errhp;
+extern OCIServer* srvhp;
+extern OCISvcCtx* svchp;
+extern OCISession* usrhp;
 
 // 월별 수익률을 받기 위한 구조체
 typedef struct {

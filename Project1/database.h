@@ -19,6 +19,4 @@ double select_weight(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock
 
 void disconnect_db(OCIEnv* envhp, OCIError* errhp, OCISvcCtx* svchp, OCISession* usrhp, OCIServer* srvhp);
 
-char* select_stock_name_by_id(OCIEnv* envhp, OCISvcCtx* svchp, OCIError* errhp, int stock_id);
-
 #endif
