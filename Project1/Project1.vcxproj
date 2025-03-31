@@ -135,14 +135,19 @@
     <ClCompile Include="database.c" />
     <ClCompile Include="export.c" />
     <ClCompile Include="main.c" />
+    <ClCompile Include="mainUi.c" />
     <ClCompile Include="oci.c" />
+    <ClCompile Include="ociCRUD.c" />
+    <ClCompile Include="testJong.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="mainUi.h" />
     <ClInclude Include="calculation.h" />
     <ClInclude Include="cJSON.h" />
     <ClInclude Include="database.h" />
     <ClInclude Include="export.h" />
     <ClInclude Include="oci.h" />
+    <ClInclude Include="ociCRUD.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
