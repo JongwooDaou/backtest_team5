@@ -8,14 +8,18 @@
 #define ADMIN_ID "1"
 #define ADMIN_PW "1"
 
+void flush_stdin() {
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF);
+}
+
 int validate_date_format(const char* date) {
-    if (strlen(date) != 10) return 0;
+    if (strlen(date) != 7) return 0;
     return isdigit(date[0]) && isdigit(date[1]) && isdigit(date[2]) && isdigit(date[3]) &&
         date[4] == '/' &&
-        isdigit(date[5]) && isdigit(date[6]) &&
-        date[7] == '/' &&
-        isdigit(date[8]) && isdigit(date[9]);
+        isdigit(date[5]) && isdigit(date[6]);
 }
+
 
 void show_main_menu() {
     printf("========================\n");
@@ -121,20 +125,23 @@ void show_user_portfolio_menu() {
     printf("매수 금액 (원): ");
     scanf("%lf", &amount);
 
-    char start_date[11], end_date[11];
+    char start_date[8], end_date[8];  // yyyy/mm -> 최대 7글자 + null
+
     do {
-        printf("시작일 (yyyy/mm/dd): ");
-        scanf("%10s", start_date);
+        printf("시작일 (yyyy/mm): ");
+        scanf("%7s", start_date);
+        flush_stdin();  // 버퍼 비우기
         if (!validate_date_format(start_date)) {
-            printf("잘못된 형식입니다. 예: 2024/01/01\n");
+            printf("잘못된 형식입니다. 예: 2024/01\n");
         }
     } while (!validate_date_format(start_date));
 
     do {
-        printf("종료일 (yyyy/mm/dd): ");
-        scanf("%10s", end_date);
+        printf("종료일 (yyyy/mm): ");
+        scanf("%7s", end_date);
+        flush_stdin();  // 버퍼 비우기
         if (!validate_date_format(end_date)) {
-            printf("잘못된 형식입니다. 예: 2024/12/31\n");
+            printf("잘못된 형식입니다. 예: 2024/12\n");
         }
     } while (!validate_date_format(end_date));
 
