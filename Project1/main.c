@@ -1,6 +1,8 @@
+/*
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 #include "export.h"
+#include "mainUi.h"
 
 int main() {
 
@@ -13,16 +15,18 @@ int main() {
 
     //printf("%s", name);
 
-    Portfolio portfolio = {
-    .id = 1,
-    .stock_count = 3,
-    .stocks = {3, 1, 19},
-    .weights = {0.5, 0.3, 0.2},
-    .frequency = 6,
-    .amount = 500000,
-    .start_date = {.tm_year = 2023 - 1900, .tm_mon = 0, .tm_mday = 1 }, 
-    .end_date = {.tm_year = 2024 - 1900, .tm_mon = 11, .tm_mday = 31 } 
-    };
+    Portfolio portfolio = show_user_portfolio_menu();
+    
+    //{
+    //.id = 1,
+    //.stock_count = 3,
+    //.stocks = {3, 1, 19},
+    //.weights = {0.5, 0.3, 0.2},
+    //.frequency = 7,
+    //.amount = 500000,
+    //.start_date = {.tm_year = 2023 - 1900, .tm_mon = 0, .tm_mday = 1 }, 
+    //.end_date = {.tm_year = 2024 - 1900, .tm_mon = 11, .tm_mday = 31 } 
+    //};
 
     ReturnResult rr = calculateReturn(&portfolio);
 
@@ -48,7 +52,6 @@ int main() {
     }
 
     printf("\n");
-    */
 
 
     ResultData* data = create_result_data(&portfolio, &rr, portfolio.start_date, portfolio.end_date);
@@ -79,10 +82,12 @@ int main() {
     printf("\n");
     */
 
-
+/*
     export_json(data, portfolio.start_date, portfolio.end_date, &portfolio);
 
     //oci_cleanup();
 
     return 0;
-}
+}*/
+
+
