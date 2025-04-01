@@ -178,7 +178,7 @@ Portfolio show_user_portfolio_menu() {
     parse_date1(start_date, &p.start_date);
     parse_date2(end_date, &p.end_date);
     
-    printf("날짜처리 완?");
+    //printf("날짜처리 완?");
 
     // 입력한 포트폴리오 요약 출력
     printf("\n[입력한 포트폴리오 요약]\n");
